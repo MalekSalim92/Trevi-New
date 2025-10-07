@@ -1,0 +1,56 @@
+name: Promote Release to Main
+
+on:
+  push:
+    branches:
+      - release
+
+permissions:
+  contents: write
+
+jobs:
+  promote-release:
+    name: Merge Release → Main
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch branches
+        run: |
+          git fetch origin main
+          git fetch origin release
+
+      - name: Checkout main branch
+        run: git checkout main
+
+      - name: Merge release into main
+        run: git merge origin/release --no-edit
+
+      - name: Push changes to main
+        run: git push origin main
+
+      - name: Create Release Tag
+        run: |
+          VERSION="v$(date +'%Y.%m.%d')-${{ github.run_number }}"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+          echo "📦 Created release tag: $VERSION"
+
+      - name: Notify Success
+        if: success()
+        run: echo "✅ Successfully promoted release to main with tag"
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "❌ Failed to promote release to main"
+          exit 1

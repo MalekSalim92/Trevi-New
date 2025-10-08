@@ -49,9 +49,8 @@ jobs:
             --tests "${{ steps.read-tests.outputs.test_classes }}" \
             --wait 10 \
             --result-format human \
-            --code-coverage \
-            --verbose
-
+            --code-coverage 
+            
       - name: Comment on PR - Tests Passed
         if: success()
         uses: actions/github-script@v7

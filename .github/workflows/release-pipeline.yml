@@ -135,7 +135,7 @@ jobs:
           
           cat test-results.json
 
-      - name: Validate code coverage (must be ≥ 75%)
+      - name: Validate code coverage (must be ≥ ${{ vars.COVERAGE_TARGET }}%)
         run: |
           echo "📊 Checking test run coverage..."
 
@@ -153,7 +153,7 @@ jobs:
 
           # Convert TEST_RUN to numeric
           COVERAGE_NUM=$(echo "$TEST_RUN" | tr -d '%')
-          THRESHOLD=75
+          THRESHOLD=${{ vars.COVERAGE_TARGET || 75 }}
 
           if (( $(echo "$COVERAGE_NUM < $THRESHOLD" | bc -l) )); then
             echo "❌ Coverage ($TEST_RUN) is below threshold ($THRESHOLD%)"
@@ -211,7 +211,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥75%)\n✅ Promoted to main\n✅ Release tag created\n\n📊 **Coverage Results:**\n- Test Run Coverage: ${testRunCoverage}\n- Org-wide Coverage: ${orgWideCoverage}`
+              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥${{ vars.COVERAGE_TARGET || 75 }}%)\n✅ Promoted to main\n✅ Release tag created\n\n📊 **Coverage Results:**\n- Test Run Coverage: ${testRunCoverage}\n- Org-wide Coverage: ${orgWideCoverage}`
             })
 
       - name: Comment on PR - Failure

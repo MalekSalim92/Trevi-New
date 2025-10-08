@@ -116,14 +116,6 @@
         </value>
     </choices>
     <choices>
-        <name>sms</name>
-        <choiceText>{!$Label.Communication_Preference_SMS}</choiceText>
-        <dataType>String</dataType>
-        <value>
-            <stringValue>SMS</stringValue>
-        </value>
-    </choices>
-    <choices>
         <name>Yes</name>
         <choiceIcon>
             <iconName>utility:check</iconName>
@@ -341,11 +333,9 @@
         <name>deliveryNotes</name>
         <dataType>String</dataType>
         <expression>IF(
-{!formName} = &apos;HT_HL_SC&apos; ,SUBSTITUTE({!$Label.Delivery_Confirmation_Note_HT}, &apos;{appointmentDate}&apos;, TEXT({!serviceDate})),
-IF(OR({!formName} = &apos;AC_RB_Autre&apos; , {!formName} = &apos;RC_Autre&apos;),{!$Label.Delivery_Confirmation_Note_AC}, 
-IF({!formName} = &apos;CR_HA&apos; , SUBSTITUTE({!$Label.Delivery_Confirmation_Note_CR}, &apos;{appointmentDate}&apos;, TEXT({!serviceDate})), 
-&apos;&apos;)
-))</expression>
+{!formName} = &apos;&apos;, {!$Label.Delivery_Confirmation_Note_HT} , &apos;&apos;
+
+)</expression>
     </formulas>
     <formulas>
         <name>exactPhoneNumber</name>
@@ -407,10 +397,9 @@ IF({!Access_Fits_MB} != null , {!$Label.Access_Fits} + &quot;  :   &quot; + {!Ac
 
 IF({!Appointment_Cancelling_Reason} != null , {!$Label.Appointment_Cancelling_Reason} + &quot;  :   &quot; + {!Appointment_Cancelling_Reason} + &quot;&lt;br&gt;&quot; , &quot;&quot; ) +
 
-IF({!To_Be_Contacted}  != null  , {!$Label.Delivery_Confirmation_To_be_contacted} + &quot;  :   &quot; +
-IF( {!To_Be_Contacted} = True, {!Yes} , {!No} ),&quot;&quot;) +
+IF({!To_Be_Contacted} , {!$Label.Delivery_Confirmation_To_be_contacted},&quot;&quot;) +
 
-IF({!Delivery_Confirmation_Change_Phone} != null , {!$Label.Delivery_Confirmation_Change_Phone} + &quot;  :   &quot; + {!Delivery_Confirmation_Change_Phone} + &quot;&lt;br&gt;&quot; , &quot;&quot; )</expression>
+IF({!Delivery_Confirmation_Change_Phone} != null , {!$Label.new_phone_number} + &quot;  :   &quot; + {!Delivery_Confirmation_Change_Phone} + &quot;&lt;br&gt;&quot; , &quot;&quot; )</expression>
     </formulas>
     <formulas>
         <name>ruleConditionsMtl</name>
@@ -452,9 +441,7 @@ IF({!Delivery_Confirmation_Change_Phone} != null , {!$Label.Delivery_Confirmatio
         <expression>OR(
 {!formName} = &apos;RC&apos;,
 {!formName} = &apos;AC_RB&apos;,
-{!formName} = &apos;Livraison_Abris&apos;,
-{!formName} = &apos;Installation_Abris&apos;
-
+{!formName} = &apos;Livraison_Abris&apos;
 )</expression>
     </formulas>
     <formulas>
@@ -479,7 +466,6 @@ IF({!Delivery_Confirmation_Change_Phone} != null , {!$Label.Delivery_Confirmatio
 {!formName} = &apos;RC_Autre&apos;,
 {!formName} = &apos;AC_RB_Autre&apos;,
 {!formName} = &apos;Livraison_Abris&apos;,
-{!formName} = &apos;Installation_Abri&apos;,
 {!formName} = &apos;Installation_HT_HL&apos;,
 {!formName} = &apos;Meuble_MB&apos;,
 {!formName} = &apos;Ouverture&apos;,
@@ -507,7 +493,6 @@ IF({!Delivery_Confirmation_Change_Phone} != null , {!$Label.Delivery_Confirmatio
 {!formName} = &apos;RC_Autre&apos;,
 {!formName} = &apos;AC_RB_Autre&apos;,
 {!formName} = &apos;Livraison_Abris&apos;,
-{!formName} = &apos;Installation_Abris&apos;,
 {!formName} = &apos;Meuble_MB&apos;,
 {!formName} = &apos;Meuble_Autre&apos;
 )</expression>
@@ -598,7 +583,6 @@ IF({!Delivery_Confirmation_Change_Phone} != null , {!$Label.Delivery_Confirmatio
 {!formName} = &apos;RC_Autre&apos;,
 {!formName} = &apos;AC_RB_Autre&apos;,
 {!formName} = &apos;Livraison_Abris&apos;,
-{!formName} = &apos;Installation_Abri&apos;,
 {!formName} = &apos;Installation_HT_HL&apos;,
 {!formName} = &apos;Meuble_MB&apos; 
 )</expression>
@@ -795,7 +779,7 @@ TIMENOW() - 18000000
         <queriedFields>Form_Name__c</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
-    <runInMode>SystemModeWithoutSharing</runInMode>
+    <runInMode>SystemModeWithSharing</runInMode>
     <screens>
         <name>Appointment_form</name>
         <label>Appointment form</label>
@@ -1355,7 +1339,6 @@ TIMENOW() - 18000000
                     <name>Communication_Preference_Picklist</name>
                     <choiceReferences>Email</choiceReferences>
                     <choiceReferences>Phone</choiceReferences>
-                    <choiceReferences>sms</choiceReferences>
                     <dataType>String</dataType>
                     <fieldText>{!$Label.Communication_Preference_Question}</fieldText>
                     <fieldType>DropdownBox</fieldType>
@@ -1429,7 +1412,7 @@ TIMENOW() - 18000000
                 </fields>
                 <fields>
                     <name>Importnat_Information</name>
-                    <fieldText>&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.important_Information_DeliveryDate}  {!deliveryDate}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.important_Information_InstallationDate}  {!installationDate}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.Important_Information_extraDetailsDescription}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.Important_Information_requirementsListLabel}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;{!$Label.Important_Information_Requirement1}&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement2}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement3}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement4}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement5}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement6}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement7}&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;strong style=&quot;background-color: rgb(255, 255, 255); color: rgb(255, 0, 0);&quot;&gt;&lt;u&gt;{!$Label.Important_Information_NoteLabel}&lt;/u&gt;&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.Important_Information_NoteDescription}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.Important_Information_NextStepDescription}&lt;/p&gt;</fieldText>
+                    <fieldText>&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.important_Information_DeliveryDate} {!deliveryDate}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.important_Information_InstallationDate} {!installationDate}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.Important_Information_extraDetailsDescription}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.Important_Information_requirementsListLabel}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;{!$Label.Important_Information_Requirement1}&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement2}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement3}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement4}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement5}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement6}&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;{!$Label.Important_Information_Requirement7}&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;strong style=&quot;color: rgb(255, 0, 0); background-color: rgb(255, 255, 255);&quot;&gt;&lt;u&gt;{!$Label.Important_Information_NoteLabel}&lt;/u&gt;&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.Important_Information_NoteDescription}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!$Label.Important_Information_NextStepDescription}&lt;/p&gt;</fieldText>
                     <fieldType>DisplayText</fieldType>
                     <styleProperties>
                         <verticalAlignment>
@@ -2028,7 +2011,7 @@ TIMENOW() - 18000000
                 </fields>
                 <fields>
                     <name>Livraison_HL_Acces_rue_Text</name>
-                    <fieldText>&lt;p&gt;{!$Label.Livraison_HL_Acces_rue_Text}&lt;/p&gt;</fieldText>
+                    <fieldText>&lt;p&gt;{!$Label.&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Livraison_HL_Acces_rue_Text&lt;/span&gt;}&lt;/p&gt;</fieldText>
                     <fieldType>DisplayText</fieldType>
                     <styleProperties>
                         <verticalAlignment>
@@ -2082,7 +2065,7 @@ TIMENOW() - 18000000
                 </fields>
                 <fields>
                     <name>Livraison_HL_Note</name>
-                    <fieldText>&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt; &lt;/span&gt;{!$Label.Livraison_HL_Note} {!serviceDate}&lt;/p&gt;</fieldText>
+                    <fieldText>&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt; {!$Label.&lt;/span&gt;Livraison_HL_Note&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;} &lt;/span&gt;{!serviceDate}&lt;/p&gt;</fieldText>
                     <fieldType>DisplayText</fieldType>
                     <styleProperties>
                         <verticalAlignment>
@@ -2368,6 +2351,13 @@ TIMENOW() - 18000000
                             <stringValue>4</stringValue>
                         </width>
                     </styleProperties>
+                    <validationRule>
+                        <errorMessage>&lt;p&gt;{!$Label.mobile_phone_pattern}&lt;/p&gt;</errorMessage>
+                        <formulaExpression>OR(
+   ISBLANK({!Delivery_Confirmation_Change_Phone}),
+   REGEX({!Delivery_Confirmation_Change_Phone}, &quot;^[0-9]{10}$&quot;)
+)</formulaExpression>
+                    </validationRule>
                 </fields>
                 <inputParameters>
                     <name>width</name>
@@ -2431,6 +2421,10 @@ TIMENOW() - 18000000
         <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
+        <connector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Redirect_url</targetReference>
+        </connector>
         <fields>
             <name>Copy_1_of_invalid</name>
             <extensionName>flowruntime:image</extensionName>
@@ -2486,9 +2480,12 @@ TIMENOW() - 18000000
         <label>Faulty Screen</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <allowBack>true</allowBack>
+        <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
+        <connector>
+            <targetReference>Redirect_url</targetReference>
+        </connector>
         <fields>
             <name>invalid2</name>
             <extensionName>flowruntime:image</extensionName>
@@ -2536,7 +2533,8 @@ TIMENOW() - 18000000
                 </width>
             </styleProperties>
         </fields>
-        <showFooter>false</showFooter>
+        <nextOrFinishButtonLabel>Finish</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
         <showHeader>false</showHeader>
     </screens>
     <screens>
@@ -2547,6 +2545,10 @@ TIMENOW() - 18000000
         <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
+        <connector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Redirect_url</targetReference>
+        </connector>
         <fields>
             <name>invalid</name>
             <extensionName>flowruntime:image</extensionName>
@@ -2605,6 +2607,10 @@ TIMENOW() - 18000000
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
+        <connector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Redirect_url</targetReference>
+        </connector>
         <fields>
             <name>Check</name>
             <extensionName>flowruntime:image</extensionName>
@@ -2668,6 +2674,39 @@ TIMENOW() - 18000000
         <showFooter>false</showFooter>
         <showHeader>false</showHeader>
     </screens>
+    <screens>
+        <name>Redirect_url</name>
+        <label>Redirect url</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <fields>
+            <name>flowRedirection</name>
+            <extensionName>c:flowRedirectingComponent</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>urlRedirection</name>
+                <value>
+                    <stringValue>Trevi_website</stringValue>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <storeOutputAutomatically>true</storeOutputAutomatically>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>false</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -2675,7 +2714,7 @@ TIMENOW() - 18000000
             <targetReference>Service_Appointment</targetReference>
         </connector>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
     <subflows>
         <name>Update_Service_Appointment</name>
         <label>Update Service Appointment</label>

@@ -60,21 +60,8 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ All specified Apex tests passed! Auto-merging PR...'
+              body: '✅ All specified Apex tests passed! PR will auto-merge shortly.'
             })
-
-      - name: Auto-merge PR
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.pulls.merge({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              merge_method: 'merge'
-            })
-            console.log('✅ PR auto-merged successfully!')
 
       - name: Comment on PR - Tests Failed
         if: failure()
@@ -87,3 +74,36 @@ jobs:
               repo: context.repo.repo,
               body: '❌ Apex tests failed. Please fix the failing tests before merging.\n\nCheck the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
             })
+
+  auto-merge:
+    name: Auto-merge PR
+    runs-on: ubuntu-latest
+    needs: validate-tests
+    if: ${{ success() }}
+    
+    steps:
+      - name: Merge PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            try {
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                merge_method: 'merge'
+              });
+              console.log('✅ PR auto-merged successfully!');
+              
+              // Add a comment confirming the merge
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '🎉 Tests passed! PR has been automatically merged to release branch.'
+              });
+            } catch (error) {
+              console.log('⚠️ Could not auto-merge. This might be due to branch protection rules or conflicts.');
+              console.log('Error:', error.message);
+            }

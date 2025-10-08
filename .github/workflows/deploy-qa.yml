@@ -16,11 +16,30 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Salesforce CLI
         run: |
           npm install -g @salesforce/cli
           sf version
+
+      - name: Install SFDX Git Delta
+        run: |
+          npm install -g sfdx-git-delta
+          echo "y" | sfdx plugins:install sfdx-git-delta
+
+      - name: Generate Delta Package
+        run: |
+          echo "📦 Generating delta package for changed components..."
+          sfdx sgd:source:delta --to HEAD --from HEAD^ --output . --generate-delta --source force-app
+          
+          echo "Changed components:"
+          if [ -f package/package.xml ]; then
+            cat package/package.xml
+          else
+            echo "⚠️ No metadata changes detected"
+          fi
 
       - name: Authenticate to QA Org
         run: |
@@ -31,10 +50,15 @@ jobs:
 
       - name: Deploy to QA
         run: |
-          echo "🚀 Deploying metadata to QA..."
-          sf project deploy start --target-org qaOrg --source-dir force-app --wait 30 --test-level RunLocalTests
+          if [ ! -f package/package.xml ]; then
+            echo "⚠️ No metadata changes to deploy, skipping deployment..."
+            exit 0
+          fi
+          
+          echo "🚀 Deploying only changed metadata to QA..."
+          sf project deploy start --target-org qaOrg --manifest package/package.xml --wait 30 --test-level RunLocalTests
 
       - name: Deployment Success
         if: success()
         run: |
-          echo "✅ Deployment to QA completed successfully!"
+          echo "✅ Delta deployment to QA completed successfully!"

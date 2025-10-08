@@ -2,7 +2,6 @@ CaseQRCodeGeneratorTest
 AppointmentResourceDuplicationTest
 CapacityFinderTest
 CaseQRCodeAttachmentCreatorTest
-CaseQRCodeGeneratorTest
 ContractorInvoiceControllerTest
 ContractorInvoiceInvocableTest
 ContractSummaryControllerTest

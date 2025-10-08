@@ -14,7 +14,7 @@ public without sharing class ShopifyPaymentService {
 
     /**
      * PaymentRequest
-     *
+     * 
      * Wrapper class to receive inputs from Flow  
      */
     public class PaymentRequest {
@@ -25,7 +25,7 @@ public without sharing class ShopifyPaymentService {
         public String woliId;
         
         @InvocableVariable(label='Contact ID' description='ID of the Contact for billing')
-        public String contactId;
+        public String contactId; 
     }
 
     /**

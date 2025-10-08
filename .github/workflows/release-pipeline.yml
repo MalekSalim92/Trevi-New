@@ -63,6 +63,70 @@ jobs:
               body: '✅ All specified Apex tests passed! PR will auto-merge.\n\n📊 Code coverage will be validated during promotion to main.'
             })
 
+      - name: Notify Teams - Tests Passed
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" -d '{
+            "type": "message",
+            "attachments": [
+              {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                  "type": "AdaptiveCard",
+                  "version": "1.4",
+                  "body": [
+                    {
+                      "type": "TextBlock",
+                      "text": "✅ Apex Tests Passed",
+                      "weight": "Bolder",
+                      "size": "Large",
+                      "color": "Good"
+                    },
+                    {
+                      "type": "FactSet",
+                      "facts": [
+                        {
+                          "title": "Repository:",
+                          "value": "${{ github.repository }}"
+                        },
+                        {
+                          "title": "PR:",
+                          "value": "#${{ github.event.pull_request.number }}"
+                        },
+                        {
+                          "title": "Branch:",
+                          "value": "${{ github.head_ref }}"
+                        },
+                        {
+                          "title": "Author:",
+                          "value": "${{ github.actor }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "All specified Apex tests passed! PR will auto-merge.",
+                      "wrap": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "Action.OpenUrl",
+                      "title": "View PR",
+                      "url": "${{ github.event.pull_request.html_url }}"
+                    },
+                    {
+                      "type": "Action.OpenUrl",
+                      "title": "View Workflow",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              }
+            ]
+          }' ${{ secrets.TEAMS_WEBHOOK_URL }}
+
       - name: Comment on PR - Tests Failed
         if: failure()
         uses: actions/github-script@v7
@@ -135,7 +199,7 @@ jobs:
           
           cat test-results.json
 
-      - name: Validate code coverage (must be ≥ ${{ vars.COVERAGE_TARGET }}%)
+      - name: Validate code coverage (must be ≥ ${{ vars.COVERAGE_THRESHOLD }}%)
         run: |
           echo "📊 Checking test run coverage..."
 
@@ -153,7 +217,7 @@ jobs:
 
           # Convert TEST_RUN to numeric
           COVERAGE_NUM=$(echo "$TEST_RUN" | tr -d '%')
-          THRESHOLD=${{ vars.COVERAGE_TARGET || 75 }}
+          THRESHOLD=${{ vars.COVERAGE_THRESHOLD || 75 }}
 
           if (( $(echo "$COVERAGE_NUM < $THRESHOLD" | bc -l) )); then
             echo "❌ Coverage ($TEST_RUN) is below threshold ($THRESHOLD%)"
@@ -211,7 +275,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥${{ vars.COVERAGE_TARGET || 75 }}%)\n✅ Promoted to main\n✅ Release tag created\n\n📊 **Coverage Results:**\n- Test Run Coverage: ${testRunCoverage}\n- Org-wide Coverage: ${orgWideCoverage}`
+              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥${{ vars.COVERAGE_THRESHOLD || 75 }}%)\n✅ Promoted to main\n✅ Release tag created\n\n📊 **Coverage Results:**\n- Test Run Coverage: ${testRunCoverage}\n- Org-wide Coverage: ${orgWideCoverage}`
             })
 
       - name: Comment on PR - Failure

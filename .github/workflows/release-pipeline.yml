@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   validate-tests:
-    name: Run Specified Apex Tests
+    name: Run Specified Apex Tests (Fast)
     runs-on: ubuntu-latest
     
     steps:
@@ -37,19 +37,20 @@ jobs:
             echo "❌ Test manifest not found at .github/tests/test-classes.txt"
             exit 1
           fi
-          TEST_CLASSES=$(cat .github/tests/test-classes.txt | xargs | tr ' ' ',')
+          
+          # Remove duplicates and empty lines, then convert to proper format
+          TEST_CLASSES=$(cat .github/tests/test-classes.txt | grep -v '^$' | sort -u | awk '{printf "--tests %s ", $0}')
           echo "test_classes=$TEST_CLASSES" >> $GITHUB_OUTPUT
-          echo "📋 Tests to run: $TEST_CLASSES"
+          echo "📋 Tests to run (count: $(cat .github/tests/test-classes.txt | grep -v '^$' | sort -u | wc -l))"
 
-      - name: Run specified test classes
+      - name: Run tests (without coverage for speed)
         id: run-tests
         run: |
-          echo "🧪 Running tests: ${{ steps.read-tests.outputs.test_classes }}"
+          echo "🧪 Running tests without coverage (fast mode)..."
           sf apex run test --target-org ciOrg \
-            --tests "${{ steps.read-tests.outputs.test_classes }}" \
+            ${{ steps.read-tests.outputs.test_classes }} \
             --wait 10 \
-            --result-format human \
-            --code-coverage
+            --result-format human
 
       - name: Comment on PR - Tests Passed
         if: success()
@@ -60,7 +61,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ All specified Apex tests passed! PR will auto-merge and promote to main.'
+              body: '✅ All specified Apex tests passed! PR will auto-merge.\n\n📊 Code coverage will be validated during promotion to main.'
             })
 
       - name: Comment on PR - Tests Failed
@@ -106,6 +107,47 @@ jobs:
       - name: Wait for merge to complete
         run: sleep 5
 
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g @salesforce/cli
+          sf version
+
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SF_DEV_AUTH_URL }}" > auth.txt
+          sf org login sfdx-url --sfdx-url-file auth.txt --set-default --alias ciOrg
+          sf org display user --target-org ciOrg
+
+      - name: Read test classes for coverage check
+        id: read-tests-coverage
+        run: |
+          TEST_CLASSES=$(cat .github/tests/test-classes.txt | grep -v '^$' | sort -u | awk '{printf "--tests %s ", $0}')
+          echo "test_classes=$TEST_CLASSES" >> $GITHUB_OUTPUT
+
+      - name: Run tests WITH coverage (thorough check)
+        id: run-coverage
+        run: |
+          echo "🧪 Running tests with code coverage (thorough mode)..."
+          sf apex run test --target-org ciOrg \
+            ${{ steps.read-tests-coverage.outputs.test_classes }} \
+            --wait 10 \
+            --result-format json \
+            --code-coverage > test-results.json
+          
+          cat test-results.json
+
+      - name: Validate code coverage (must be ≥ 75%)
+        run: |
+          COVERAGE=$(cat test-results.json | jq -r '.summary.orgWideCoverage' | sed 's/%//')
+          echo "📊 Org-wide Code Coverage: ${COVERAGE}%"
+          
+          if (( $(echo "$COVERAGE < 75" | bc -l) )); then
+            echo "❌ Code coverage is ${COVERAGE}%, which is below the required 75%"
+            exit 1
+          else
+            echo "✅ Code coverage is ${COVERAGE}%, meets the 75% requirement"
+          fi
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
@@ -147,11 +189,15 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
+            const testResults = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+            const coverage = testResults.summary.orgWideCoverage;
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Promoted to main\n✅ Release tag created'
+              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage: ${coverage} (≥75% required)\n✅ Promoted to main\n✅ Release tag created`
             })
 
       - name: Comment on PR - Failure
@@ -163,5 +209,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '❌ Failed during merge or promotion. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
+              body: '❌ Failed during coverage check, merge, or promotion. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
             })

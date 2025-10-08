@@ -1,5 +1,4 @@
 CaseQRCodeGeneratorTest
-AppointmentResourceDuplicationTest
 CapacityFinderTest
 CaseQRCodeAttachmentCreatorTest
 ContractorInvoiceControllerTest

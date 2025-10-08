@@ -204,13 +204,14 @@ jobs:
           script: |
             const fs = require('fs');
             const testResults = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
-            const coverage = coverage = (testResults.result?.coverage?.orgWideCoverage) || 'N/A';
+            const testRunCoverage = testResults.result?.summary?.testRunCoverage || 'N/A';
+            const orgWideCoverage = testResults.result?.summary?.orgWideCoverage || 'N/A';
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥75%)\n✅ Promoted to main\n✅ Release tag created\n📊 Org-wide coverage: ${coverage}`
+              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥75%)\n✅ Promoted to main\n✅ Release tag created\n\n📊 **Coverage Results:**\n- Test Run Coverage: ${testRunCoverage}\n- Org-wide Coverage: ${orgWideCoverage}`
             })
 
       - name: Comment on PR - Failure

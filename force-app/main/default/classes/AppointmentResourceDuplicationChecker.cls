@@ -19,7 +19,7 @@ public class AppointmentResourceDuplicationChecker {
     }
 
     /**
-     * Invocable method to check duplications in appointment resources.
+     * Invocable method to check duplications in appointment resources .
      * @param requests List of RequestWrapper containing Appointment Resources
      * @return A list of lists of Appointment_Resource__c with duplication info
      */

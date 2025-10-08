@@ -34,7 +34,7 @@ global class CapacityFinder {
         global Boolean isBundle;  // Added for Flow access
     }
     
-    // NEW: Wrapper class to hold both WorkType and isBundle
+    // NEW:  Wrapper class to hold both WorkType and isBundle
     public class WorkTypeResult {
         public WorkType workType { get; set; }
         public Boolean isBundle { get; set; }

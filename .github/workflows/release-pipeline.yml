@@ -135,7 +135,7 @@ jobs:
           
           cat test-results.json
 
-      - name: Validate code coverage (must be ≥ ${{ vars.COVERAGE_TARGET }}%)
+      - name: Validate code coverage (must be ≥ ${{ vars.COVERAGE_THRESHOLD }}%)
         run: |
           echo "📊 Checking test run coverage..."
 
@@ -153,7 +153,7 @@ jobs:
 
           # Convert TEST_RUN to numeric
           COVERAGE_NUM=$(echo "$TEST_RUN" | tr -d '%')
-          THRESHOLD=${{ vars.COVERAGE_TARGET || 75 }}
+          THRESHOLD=${{ vars.COVERAGE_THRESHOLD || 75 }}
 
           if (( $(echo "$COVERAGE_NUM < $THRESHOLD" | bc -l) )); then
             echo "❌ Coverage ($TEST_RUN) is below threshold ($THRESHOLD%)"
@@ -211,20 +211,88 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥${{ vars.COVERAGE_TARGET || 75 }}%)\n✅ Promoted to main\n✅ Release tag created\n\n📊 **Coverage Results:**\n- Test Run Coverage: ${testRunCoverage}\n- Org-wide Coverage: ${orgWideCoverage}`
+              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥${{ vars.COVERAGE_THRESHOLD || 75 }}%)\n✅ Promoted to main\n✅ Release tag created\n\n📊 **Coverage Results:**\n- Test Run Coverage: ${testRunCoverage}\n- Org-wide Coverage: ${orgWideCoverage}`
             })
 
       - name: Notify Teams - Release Success
         if: success()
         run: |
-          COVERAGE_TARGET=${{ vars.COVERAGE_TARGET || 75 }}
+          COVERAGE_THRESHOLD=${{ vars.COVERAGE_THRESHOLD || 75 }}
           TEST_RUN_COVERAGE=$(jq -r '.result.summary.testRunCoverage' test-results.json)
           ORG_WIDE_COVERAGE=$(jq -r '.result.summary.orgWideCoverage' test-results.json)
           VERSION="v$(date +'%Y.%m.%d')-${{ github.run_number }}"
           
           curl -H "Content-Type: application/json" -d '{
-            "title": "🎉 Release Pipeline Complete!",
-            "text": "**Repository:** ${{ github.repository }}\n**PR:** #${{ github.event.pull_request.number }}\n**Release Tag:** '"$VERSION"'\n**Author:** ${{ github.actor }}\n\n✅ Merged to release\n✅ Code coverage validated (≥'"$COVERAGE_TARGET"'%)\n✅ Promoted to main\n✅ Release tag created\n\n**Coverage Results:**\n- Test Run Coverage: '"$TEST_RUN_COVERAGE"'\n- Org-wide Coverage: '"$ORG_WIDE_COVERAGE"'\n\n[View PR](${{ github.event.pull_request.html_url }}) | [View Workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            "type": "message",
+            "attachments": [
+              {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                  "type": "AdaptiveCard",
+                  "version": "1.2",
+                  "body": [
+                    {
+                      "type": "TextBlock",
+                      "text": "🎉 Release Pipeline Complete!",
+                      "weight": "Bolder",
+                      "size": "Large",
+                      "color": "Good"
+                    },
+                    {
+                      "type": "FactSet",
+                      "facts": [
+                        {
+                          "title": "Repository:",
+                          "value": "${{ github.repository }}"
+                        },
+                        {
+                          "title": "PR:",
+                          "value": "#${{ github.event.pull_request.number }}"
+                        },
+                        {
+                          "title": "Release Tag:",
+                          "value": "'"$VERSION"'"
+                        },
+                        {
+                          "title": "Author:",
+                          "value": "${{ github.actor }}"
+                        },
+                        {
+                          "title": "Test Run Coverage:",
+                          "value": "'"$TEST_RUN_COVERAGE"'"
+                        },
+                        {
+                          "title": "Org-wide Coverage:",
+                          "value": "'"$ORG_WIDE_COVERAGE"'"
+                        },
+                        {
+                          "title": "Required Coverage:",
+                          "value": "≥'"$COVERAGE_THRESHOLD"'%"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "✅ Merged to release\n\n✅ Code coverage validated\n\n✅ Promoted to main\n\n✅ Release tag created",
+                      "wrap": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "Action.OpenUrl",
+                      "title": "View PR",
+                      "url": "${{ github.event.pull_request.html_url }}"
+                    },
+                    {
+                      "type": "Action.OpenUrl",
+                      "title": "View Workflow",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              }
+            ]
           }' ${{ secrets.TEAMS_WEBHOOK_URL }}
 
       - name: Comment on PR - Failure
@@ -243,6 +311,51 @@ jobs:
         if: failure()
         run: |
           curl -H "Content-Type: application/json" -d '{
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "summary": "Release Pipeline Failed",
+            "themeColor": "d73a4a",
             "title": "❌ Release Pipeline Failed",
-            "text": "**Repository:** ${{ github.repository }}\n**PR:** #${{ github.event.pull_request.number }}\n**Branch:** ${{ github.head_ref }}\n**Author:** ${{ github.actor }}\n\nFailed during coverage check, merge, or promotion. Please check the workflow logs.\n\n[View PR](${{ github.event.pull_request.html_url }}) | [View Workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            "sections": [
+              {
+                "activityTitle": "Repository: ${{ github.repository }}",
+                "facts": [
+                  {
+                    "name": "PR:",
+                    "value": "#${{ github.event.pull_request.number }}"
+                  },
+                  {
+                    "name": "Branch:",
+                    "value": "${{ github.head_ref }}"
+                  },
+                  {
+                    "name": "Author:",
+                    "value": "${{ github.actor }}"
+                  }
+                ],
+                "text": "Failed during coverage check, merge, or promotion. Please check the workflow logs."
+              }
+            ],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "View PR",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${{ github.event.pull_request.html_url }}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "View Workflow",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              }
+            ]
           }' ${{ secrets.TEAMS_WEBHOOK_URL }}

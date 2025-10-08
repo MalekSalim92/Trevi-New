@@ -1,0 +1,40 @@
+name: Auto Deploy to QA
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-to-qa:
+    name: Deploy to QA Org
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g @salesforce/cli
+          sf version
+
+      - name: Authenticate to QA Org
+        run: |
+          echo "${{ secrets.SF_QA_AUTH_URL }}" > qa-auth.txt
+          sf org login sfdx-url --sfdx-url-file qa-auth.txt --set-default --alias qaOrg
+          sf org display user --target-org qaOrg
+          rm qa-auth.txt
+
+      - name: Deploy to QA
+        run: |
+          echo "🚀 Deploying metadata to QA..."
+          sf project deploy start --target-org qaOrg --source-dir force-app --wait 30 --test-level RunLocalTests
+
+      - name: Deployment Success
+        if: success()
+        run: |
+          echo "✅ Deployment to QA completed successfully!"

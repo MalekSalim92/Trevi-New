@@ -1,18 +1,48 @@
-name: Promote Release to Main
+name: Validate PR → Release
 
 on:
-  push:
+  pull_request:
     branches:
       - release
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  promote-release:
-    name: Merge Release → Main
+  validate-tests:
+    name: Run Specified Apex Tests
     runs-on: ubuntu-latest
-    
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SF_DEV_AUTH_URL }}" > auth.txt
+          sf org login sfdx-url --sfdx-url-file auth.txt --set-default --alias ciOrg
+          sf org display user --target-org ciOrg
+
+      - name: Run only specified test classes
+        id: run-tests
+        run: |
+          TEST_CLASSES=$(cat .github/tests/test-classes.txt | xargs | tr ' ' ',')
+          echo "Running tests: $TEST_CLASSES"
+          sf apex run test --target-org ciOrg --tests "$TEST_CLASSES" --wait 10 --result-format human --code-coverage --verbose
+
+      - name: Check if tests passed
+        if: ${{ failure() }}
+        run: |
+          echo "❌ Tests failed. Merge to main is blocked."
+          exit 1
+
+  promote-release:
+    name: Merge Release → Main (if tests pass)
+    needs: validate-tests
+    runs-on: ubuntu-latest
+    if: ${{ success() }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,20 +67,3 @@ jobs:
 
       - name: Push changes to main
         run: git push origin main
-
-      - name: Create Release Tag
-        run: |
-          VERSION="v$(date +'%Y.%m.%d')-${{ github.run_number }}"
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
-          echo "📦 Created release tag: $VERSION"
-
-      - name: Notify Success
-        if: success()
-        run: echo "✅ Successfully promoted release to main with tag"
-
-      - name: Notify Failure
-        if: failure()
-        run: |
-          echo "❌ Failed to promote release to main"
-          exit 1

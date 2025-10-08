@@ -132,9 +132,15 @@ jobs:
       - name: Create Release Tag
         run: |
           VERSION="v$(date +'%Y.%m.%d')-${{ github.run_number }}"
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
-          echo "📦 Created release tag: $VERSION"
+          
+          # Check if tag already exists
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "⚠️ Tag $VERSION already exists, skipping tag creation"
+          else
+            git tag -a "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
+            echo "📦 Created release tag: $VERSION"
+          fi
 
       - name: Comment on PR - Success
         if: success()

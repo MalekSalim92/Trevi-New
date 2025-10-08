@@ -543,7 +543,7 @@ Merci</label>
         <name>Closing_Service_Text</name>
     </customLabels>
     <customLabels>
-        <label>Date de fermeture</label>
+        <label>Date de fermeture dans la semaine du</label>
         <name>Closing_date</name>
     </customLabels>
     <customLabels>
@@ -14369,7 +14369,7 @@ Trévi ne garantit pas les bris pouvant survenir après le 15 décembre.</label>
         <name>Opening_Closing_Use_Billing_Address</name>
     </customLabels>
     <customLabels>
-        <label>Date d&apos;ouverture</label>
+        <label>Date d&apos;ouverture dans la semaine du</label>
         <name>Opening_Date</name>
     </customLabels>
     <customLabels>

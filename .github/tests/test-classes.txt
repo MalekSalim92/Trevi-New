@@ -1,7 +1,6 @@
 CaseQRCodeGeneratorTest
 CapacityFinderTest
 CaseQRCodeAttachmentCreatorTest
-ContractorInvoiceControllerTest
 ContractorInvoiceInvocableTest
 ContractSummaryControllerTest
 ContractSummaryPdfGeneratorTest

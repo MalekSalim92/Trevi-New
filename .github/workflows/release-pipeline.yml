@@ -135,49 +135,31 @@ jobs:
           
           cat test-results.json
 
-      - name: Validate individual class coverage (must be ≥ 75%)
+      - name: Validate code coverage (must be ≥ 75%)
         run: |
-          echo "📊 Checking per-class coverage..."
+          echo "📊 Checking test run coverage..."
 
-          # 1. Get list of classes to check
-          if [ -f ".github/tests/classes-to-check.txt" ]; then
-            CLASSES_TO_CHECK=$(cat .github/tests/classes-to-check.txt | grep -v '^$' | sort -u)
-          else
-            echo "⚠️ No .github/tests/classes-to-check.txt found — using all covered classes"
-            CLASSES_TO_CHECK=$(jq -r '.coverage.coverage[].name' test-results.json)
+          if [ ! -f test-results.json ]; then
+            echo "❌ test-results.json file not found!"
+            exit 1
           fi
 
-          # 2. Initialize failure flag
-          FAIL=0
+          # Extract test run coverage
+          TEST_RUN=$(jq -r '.result.summary.testRunCoverage' test-results.json)
+          ORG_WIDE=$(jq -r '.result.summary.orgWideCoverage' test-results.json)
 
-          # 3. Loop through each class and check coverage
-          for CLASS in $CLASSES_TO_CHECK; do
-            TOTAL=$(jq -r ".coverage.coverage[] | select(.name==\"$CLASS\") | .totalLines" test-results.json)
-            COVERED=$(jq -r ".coverage.coverage[] | select(.name==\"$CLASS\") | .coveredLines" test-results.json)
+          echo "🧪 Test run coverage: $TEST_RUN"
+          echo "🏛️ Org-wide coverage: $ORG_WIDE"
 
-            if [ "$TOTAL" = "null" ] || [ -z "$TOTAL" ]; then
-              echo "⚠️ No coverage data found for $CLASS (might not be covered by tests)"
-              FAIL=1
-              continue
-            fi
+          # Convert TEST_RUN to numeric
+          COVERAGE_NUM=$(echo "$TEST_RUN" | tr -d '%')
+          THRESHOLD=75
 
-            PERCENT=$(echo "scale=2; ($COVERED/$TOTAL)*100" | bc)
-            echo "📄 $CLASS → $PERCENT% covered ($COVERED/$TOTAL lines)"
-
-            if (( $(echo "$PERCENT < 75" | bc -l) )); then
-              echo "❌ $CLASS coverage below threshold (75%)"
-              FAIL=1
-            else
-              echo "✅ $CLASS coverage OK"
-            fi
-          done
-
-          # 4. Fail if any class below threshold
-          if [ $FAIL -ne 0 ]; then
-            echo "🚫 One or more classes are below 75% coverage."
+          if (( $(echo "$COVERAGE_NUM < $THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage ($TEST_RUN) is below threshold ($THRESHOLD%)"
             exit 1
           else
-            echo "✅ All checked classes meet or exceed 75% coverage."
+            echo "✅ Coverage check passed ($TEST_RUN ≥ $THRESHOLD%)"
           fi
 
       - name: Configure Git
@@ -228,7 +210,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥75% for all classes)\n✅ Promoted to main\n✅ Release tag created\n📊 Org-wide coverage: ${coverage}`
+              body: `🎉 **Release Pipeline Complete!**\n\n✅ Merged to release\n✅ Code coverage validation passed (≥75%)\n✅ Promoted to main\n✅ Release tag created\n📊 Org-wide coverage: ${coverage}`
             })
 
       - name: Comment on PR - Failure

@@ -204,7 +204,7 @@ jobs:
           script: |
             const fs = require('fs');
             const testResults = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
-            const coverage = testResults.summary.orgWideCoverage;
+            const coverage = coverage = (testResults.result?.coverage?.orgWideCoverage) || 'N/A';
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,

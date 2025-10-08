@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>64.0</apiVersion>
+    <isExposed>true</isExposed>
+
+    <masterLabel>Shopify Payment</masterLabel>
+    <description>Polls for Shopify payment URL and opens payment popup or shows status</description>
+
+    <targets>
+        <target>lightning__FlowScreen</target>
+        <target>lightning__RecordAction</target>
+    </targets>
+
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="paymentUrl" type="String" label="Payment url"
+                description="Shopify Payment url" />
+            <property name="redirectionUrl" type="String" label="Redirection URL"
+                description="Redirection url api name stored as custom metadata types" />
+            <property name="orderId" type="String" label="Order Id"
+                description="Order Id to pay , ONLY FILL if the payment is triggered from the record page" />
+            <property name="amount" type="Integer" label="Amount to pay"
+                description="Amount to pay , ONLY FILL if the payment is triggered from the record page" />
+
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

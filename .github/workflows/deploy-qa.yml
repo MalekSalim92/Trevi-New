@@ -1,0 +1,52 @@
+name: Auto Deploy to QA
+
+on:
+  push:
+    branches:
+      - release
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  deploy-to-qa:
+    name: Deploy to QA Org
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g @salesforce/cli
+          sf version
+
+      - name: Authenticate to QA Org
+        run: |
+          echo "${{ secrets.SF_QA_AUTH_URL }}" > qa-auth.txt
+          sf org login sfdx-url --sfdx-url-file qa-auth.txt --set-default --alias qaOrg
+          sf org display user --target-org qaOrg
+
+      - name: Deploy to QA
+        run: |
+          echo "🚀 Deploying metadata to QA..."
+          sf deploy metadata --target-org qaOrg --source-dir force-app/main/default --wait 10 --test-level RunLocalTests
+
+      - name: Validate Deployment
+        run: |
+          echo "✅ Deployment to QA completed successfully."
+
+      - name: Comment on PR (optional)
+        if: success() && github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Deployment to QA org completed successfully!'
+            })

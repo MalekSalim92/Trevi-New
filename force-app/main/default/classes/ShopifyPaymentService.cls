@@ -3,7 +3,7 @@
  *
  * Responsible for handling Shopify payment requests from Salesforce.
  * Provides invocable methods for Flow  and makes async
- * callouts to Shopify API.  Updates WorkOrderLineItem/Order records with 
+ * callouts to Shopify API. Updates WorkOrderLineItem/Order records with 
  * payment URLs and pending status in bulk.
  *
  * Author: Malek Brachemi

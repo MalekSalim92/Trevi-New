@@ -29,6 +29,13 @@ jobs:
           npm install -g sfdx-git-delta
           echo "y" | sfdx plugins:install sfdx-git-delta
 
+      - name: Authenticate to QA Org
+        run: |
+          echo "${{ secrets.SF_QA_AUTH_URL }}" > qa-auth.txt
+          sf org login sfdx-url --sfdx-url-file qa-auth.txt --set-default --alias qaOrg
+          sf org display user --target-org qaOrg
+          rm qa-auth.txt
+
       - name: Generate Delta Package
         run: |
           echo "📦 Generating delta package for changed components..."
@@ -37,15 +44,8 @@ jobs:
           LAST_QA_TAG=$(git tag -l "qa-deploy-*" | sort -V | tail -n 1)
           
           if [ -z "$LAST_QA_TAG" ]; then
-            echo "No previous QA deployment found, deploying all metadata from force-app..."
-            # First deployment - deploy everything
-            sf project deploy start --target-org qaOrg --source-dir force-app --wait 30 --test-level RunLocalTests
-            
-            # Create tag for this deployment
-            QA_TAG="qa-deploy-$(date +'%Y%m%d-%H%M%S')"
-            git tag "$QA_TAG"
-            git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git "$QA_TAG"
-            echo "✅ First QA deployment complete and tagged: $QA_TAG"
+            echo "⚠️ No previous QA deployment tag found"
+            echo "FIRST_DEPLOY=true" >> $GITHUB_ENV
             exit 0
           fi
           
@@ -61,15 +61,16 @@ jobs:
             echo "⚠️ No metadata changes detected"
           fi
 
-      - name: Authenticate to QA Org
-        run: |
-          echo "${{ secrets.SF_QA_AUTH_URL }}" > qa-auth.txt
-          sf org login sfdx-url --sfdx-url-file qa-auth.txt --set-default --alias qaOrg
-          sf org display user --target-org qaOrg
-          rm qa-auth.txt
-
       - name: Deploy to QA
         run: |
+          # If this is the first deployment, deploy everything
+          if [ "$FIRST_DEPLOY" = "true" ]; then
+            echo "🚀 First QA deployment - deploying all metadata from force-app..."
+            sf project deploy start --target-org qaOrg --source-dir force-app --wait 30 --test-level RunLocalTests
+            exit 0
+          fi
+          
+          # Otherwise deploy delta
           if [ ! -f package/package.xml ]; then
             echo "⚠️ No metadata changes to deploy, skipping deployment..."
             exit 0
@@ -82,14 +83,15 @@ jobs:
           fi
           
           echo "🚀 Deploying only changed metadata to QA..."
-          sf project deploy start --target-org qaOrg --manifest package/package.xml --wait 30 --test-level RunLocalTests || {
-            if [ $? -eq 1 ]; then
-              echo "⚠️ No local changes to deploy (already up to date)"
-              exit 0
-            else
-              exit 1
-            fi
-          }
+          sf project deploy start --target-org qaOrg --manifest package/package.xml --wait 30 --test-level RunLocalTests
+
+      - name: Tag Successful Deployment
+        if: success()
+        run: |
+          QA_TAG="qa-deploy-$(date +'%Y%m%d-%H%M%S')"
+          git tag "$QA_TAG"
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git "$QA_TAG"
+          echo "✅ QA deployment tagged: $QA_TAG"
 
       - name: Deployment Success
         if: success()

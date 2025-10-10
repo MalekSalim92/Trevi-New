@@ -6,7 +6,7 @@
  * listing duplicate links in TECH_Duplicates__c.
  *
  * Author: Malek Brachemi
- * Date: 2025-05-25
+ * Date: 2025-05-25 
  */
 public class AppointmentResourceDuplicationChecker {
 
